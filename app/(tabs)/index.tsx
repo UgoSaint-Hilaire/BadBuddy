@@ -3,23 +3,15 @@ import { StyleSheet } from "react-native";
 import EditScreenInfo from "@/components/EditScreenInfo";
 import { Text, View } from "@/components/Themed";
 
-import { useGetLocationsQuery } from "../apis/DataESApi";
+import { useGetLocationsQuery } from "../apis/LocationApi";
 
 export default function TabOneScreen() {
   const { data, isLoading, isSuccess, error } = useGetLocationsQuery("");
-  if (data) {
-    console.log(data.results);
-  } else {
-    console.log(error);
-  }
-  if (data !== undefined) {
-    data.results.map((item) => console.log(item));
-  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Tab One</Text>
-      {isLoading && <p>Chargement...</p>}
+      {isLoading && <p style={{ color: "red" }}>Chargement...</p>}
       {isSuccess && (
         <View>
           <Text style={{ fontWeight: "500", textAlign: "center" }}>Nombre de résultats : {data.total_count}</Text>
