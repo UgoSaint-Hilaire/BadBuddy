@@ -12,17 +12,25 @@ export default function TabOneScreen() {
   } else {
     console.log(error);
   }
+  if (data !== undefined) {
+    data.results.map((item) => console.log(item));
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Tab One</Text>
       {isLoading && <p>Chargement...</p>}
-
-      <View
-        style={styles.separator}
-        lightColor="#eee"
-        darkColor="rgba(255,255,255,0.1)"
-      />
+      {isSuccess && (
+        <View>
+          <Text style={{ fontWeight: "500", textAlign: "center" }}>Nombre de résultats : {data.total_count}</Text>
+          {data.results.map((item, index) => (
+            <Text style={{ textAlign: "center" }} key={index}>
+              {item.equip_nom}
+            </Text>
+          ))}
+        </View>
+      )}
+      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
       <EditScreenInfo path="app/(tabs)/index.tsx" />
     </View>
   );
