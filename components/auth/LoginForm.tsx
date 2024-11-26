@@ -3,6 +3,7 @@ import { Text, View } from "../Themed";
 import { FIREBASE_AUTH } from "@/config/firebase";
 import { ActivityIndicator, Button, KeyboardAvoidingView, StyleSheet, TextInput } from "react-native";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { router } from "expo-router";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -26,7 +27,6 @@ export default function LoginScreen() {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
     } catch (error) {
-      console.error(error);
     } finally {
       setLoading(false);
     }
