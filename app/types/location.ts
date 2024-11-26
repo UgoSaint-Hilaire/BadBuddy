@@ -1,12 +1,10 @@
 // types/sportsFacilities.types.ts
 
-// Interface pour les coordonnées géographiques
 interface Coordinates {
   lon: number;
   lat: number;
 }
 
-// Interface pour les résultats individuels
 interface SportsFacility {
   inst_numero: string;
   inst_nom: string;
@@ -127,11 +125,9 @@ interface SportsFacility {
   categorie: string;
 }
 
-// Interface pour la réponse complète de l'API
 interface SportsFacilitiesResponse {
   total_count: number;
   results: SportsFacility[];
 }
 
-// Export des types
 export type { Coordinates, SportsFacility, SportsFacilitiesResponse };
