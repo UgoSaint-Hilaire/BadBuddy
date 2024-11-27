@@ -65,13 +65,14 @@ export default function LoginScreen() {
       <Text style={styles.logo}>🏸</Text>
       <Text style={styles.title}>Inscription</Text>
       <KeyboardAvoidingView behavior="padding">
-        <Input placeholder="Email" autoCapitalize="none" onChangeText={(text) => setEmail(text)} value={email} />
+        <Input placeholder="Email" autoCapitalize="none" onChangeText={(text) => setEmail(text)} value={email} style={styles.input} />
         <Input
           placeholder="Mot de passe"
           autoCapitalize="none"
           secureTextEntry
           onChangeText={(text) => setPassword(text)}
           value={password}
+          style={styles.input}
         />
         <Input
           placeholder="Confirmer le mot de passe"
@@ -79,6 +80,7 @@ export default function LoginScreen() {
           secureTextEntry
           onChangeText={(text) => setConfirmPassword(text)}
           value={confirmPassword}
+          style={styles.input}
         />
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
@@ -133,4 +135,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 10,
   },
+  input: {
+    color: "#2f95dc",
+  }
 });

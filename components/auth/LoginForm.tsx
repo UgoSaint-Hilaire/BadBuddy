@@ -71,6 +71,7 @@ export default function LoginScreen() {
           onChangeText={(text) => setEmail(text)}
           value={email}
           errorMessage={errorMessage && email ? "" : undefined}
+          style={styles.input}
         />
         <Input
           placeholder="Mot de passe"
@@ -79,6 +80,7 @@ export default function LoginScreen() {
           onChangeText={(text) => setPassword(text)}
           value={password}
           errorMessage={errorMessage && password ? "" : undefined}
+          style={styles.input}
         />
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
@@ -133,4 +135,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 10,
   },
+  input: {
+    color: "#2f95dc",
+  }
 });
