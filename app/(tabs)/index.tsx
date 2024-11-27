@@ -13,6 +13,9 @@ export default function TabOneScreen() {
   const [displayCurrentLocation, setDisplayCurrentLocation] =
     useState<UserInformations | null>(null);
   const [locationServicesEnabled, setLocationServicesEnabled] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
 
   useEffect(() => {
     checkIfLocationEnabled();
@@ -36,62 +39,75 @@ export default function TabOneScreen() {
   };
 
   const getCurrentLocation = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    console.log(status);
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission denied",
-        "Allow the app to use the location services",
-        [
-          {
-            text: "Cancel",
-            onPress: () => console.log("Cancel Pressed"),
-            style: "cancel",
-          },
-          { text: "OK", onPress: () => console.log("OK Pressed") },
-        ]
+    try {
+      setLocationStatus("loading");
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      console.log(status);
+      if (status !== "granted") {
+        setLocationStatus("error");
+        Alert.alert(
+          "Permission denied",
+          "Allow the app to use the location services",
+          [
+            {
+              text: "Cancel",
+              onPress: () => console.log("Cancel Pressed"),
+              style: "cancel",
+            },
+            { text: "OK", onPress: () => console.log("OK Pressed") },
+          ]
+        );
+        return;
+      }
+
+      //get current position
+      const { coords } = await Location.getCurrentPositionAsync();
+
+      if (coords) {
+        const { latitude: lat, longitude: lon } = coords;
+        setDisplayCurrentLocation((prevState) => ({
+          ...prevState,
+          lat,
+          lon,
+        }));
+
+        setLocationStatus("success");
+      }
+    } catch {
+      setLocationStatus("error");
+      console.error(
+        "Erreur lors de la récupération de la position:",
+        locationStatus
       );
     }
-
-    //get current position
-    const { coords } = await Location.getCurrentPositionAsync();
-    if (coords) {
-      const { latitude: lat, longitude: lon } = coords;
-      setDisplayCurrentLocation({ lat, lon });
-
-      console.log(displayCurrentLocation);
-
-      // normalement on on reverse la lat et long pour l'adresse
-      // mais ça fonctionne pas
-      // let res = await Location.reverseGeocodeAsync({
-      //   lat,
-      //   lon,
-      // });
-      // for (let item of res) {
-      //   let address = `${item.name} ${item.city} ${item.postalCode}`;
-      //   setDisplayCurrentLocation(address);
-      // }
-    }
   };
-
-  const [userRadius, setUserRadius] = useState(10);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Tab One</Text>
-      {/* {isLoading && <p style={{ color: "red" }}>Chargement...</p>}
-      {isSuccess && (
+
+      {/* Affichage conditionnel selon l'état de la requête */}
+      {locationStatus === "idle" && <Text>En attente de localisation...</Text>}
+
+      {locationStatus === "loading" && (
         <View>
-          <Text style={{ fontWeight: "500", textAlign: "center" }}>
-            Nombre de résultats : {data.total_count}
-          </Text>
-          {data.results.map((item, index) => (
-            <Text style={{ textAlign: "center" }} key={index}>
-              {item.equip_nom}
-            </Text>
-          ))}
+          <Text>Récupération de votre position en cours...</Text>
+          {/* Vous pourriez ajouter un composant ActivityIndicator ici */}
         </View>
-      )} */}
+      )}
+
+      {locationStatus === "success" && displayCurrentLocation && (
+        <View>
+          <Text>Position trouvée !</Text>
+          <Text>Latitude: {displayCurrentLocation.lat}</Text>
+          <Text>Longitude: {displayCurrentLocation.lon}</Text>
+        </View>
+      )}
+
+      {locationStatus === "error" && (
+        <Text>Impossible de récupérer votre position</Text>
+      )}
+
       <View
         style={styles.separator}
         lightColor="#eee"
