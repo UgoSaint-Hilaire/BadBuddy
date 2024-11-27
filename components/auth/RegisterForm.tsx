@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Text, View } from "../Themed";
 import { FIREBASE_AUTH } from "@/config/firebase";
 import { ActivityIndicator, KeyboardAvoidingView, StyleSheet } from "react-native";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { Button, Input } from "@rneui/themed";
 import { router } from "expo-router";
 import { FirebaseError } from "firebase/app";
@@ -10,51 +10,51 @@ import { FirebaseError } from "firebase/app";
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const auth = FIREBASE_AUTH;
 
-  const signIn = async () => {
+  const signUp = async () => {
     // Réinitialiser le message d'erreur
     setErrorMessage("");
     setLoading(true);
 
-    // Validation de base
-    if (!email || !password) {
-      setErrorMessage("Veuillez saisir votre email et votre mot de passe");
+    // Validation avant l'envoi
+    if (password.length < 6) {
+      setErrorMessage("Le mot de passe doit contenir au moins 6 caractères");
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Les mots de passe ne correspondent pas");
       setLoading(false);
       return;
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // Redirection après connexion réussie
-      router.push("/(tabs)"); // Ajustez la route selon votre navigation
+      await createUserWithEmailAndPassword(auth, email, password);
+      // Redirection ou action après inscription réussie
+      router.push("/(authentication)/login");
     } catch (error) {
       if (error instanceof FirebaseError) {
         switch (error.code) {
-          case "auth/user-not-found":
-            setErrorMessage("Aucun compte n'est associé à cet email");
-            break;
-          case "auth/wrong-password":
-            setErrorMessage("Mot de passe incorrect");
+          case "auth/email-already-in-use":
+            setErrorMessage("Cette adresse email est déjà utilisée");
             break;
           case "auth/invalid-email":
             setErrorMessage("Format d'email invalide");
             break;
-          case "auth/user-disabled":
-            setErrorMessage("Ce compte a été désactivé");
-            break;
-          case "auth/too-many-requests":
-            setErrorMessage("Trop de tentatives. Veuillez réessayer plus tard");
+          case "auth/weak-password":
+            setErrorMessage("Le mot de passe est trop faible");
             break;
           default:
-            setErrorMessage("Une erreur est survenue lors de la connexion");
+            setErrorMessage("Une erreur est survenue lors de l'inscription");
         }
       } else {
         setErrorMessage("Une erreur inattendue est survenue");
       }
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -62,23 +62,22 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      {/* BadBuddy title */}
-      <Text style={styles.title}>Connexion</Text>
+      <Text style={styles.title}>Inscription</Text>
       <KeyboardAvoidingView behavior="padding">
-        <Input
-          placeholder="Email"
-          autoCapitalize="none"
-          onChangeText={(text) => setEmail(text)}
-          value={email}
-          errorMessage={errorMessage && email ? "" : undefined}
-        />
+        <Input placeholder="Email" autoCapitalize="none" onChangeText={(text) => setEmail(text)} value={email} />
         <Input
           placeholder="Mot de passe"
           autoCapitalize="none"
           secureTextEntry
           onChangeText={(text) => setPassword(text)}
           value={password}
-          errorMessage={errorMessage && password ? "" : undefined}
+        />
+        <Input
+          placeholder="Confirmer le mot de passe"
+          autoCapitalize="none"
+          secureTextEntry
+          onChangeText={(text) => setConfirmPassword(text)}
+          value={confirmPassword}
         />
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
@@ -93,11 +92,11 @@ export default function LoginScreen() {
                 borderWidth: 0,
                 borderRadius: 5,
               }}
-              title="Connexion"
-              onPress={signIn}
+              title="Créer un compte"
+              onPress={signUp}
             />
-            <Text style={styles.link} onPress={() => router.push("/(authentication)/register")}>
-              Créer un compte
+            <Text style={styles.link} onPress={() => router.push("/(authentication)/login")}>
+              Vous avez déjà un compte ? Connectez-vous
             </Text>
           </>
         )}

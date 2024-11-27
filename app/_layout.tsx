@@ -47,7 +47,7 @@ function RootLayoutNav() {
 
   useEffect(() => {
     onAuthStateChanged(FIREBASE_AUTH, (user: User | null) => {
-      router.replace(user ? "/(tabs)" : "/(login)/login");
+      router.replace(user ? "/(tabs)" : "/(authentication)/login");
     });
   }, []);
 
@@ -58,7 +58,7 @@ function RootLayoutNav() {
           screenOptions={{
             headerShown: false,
           }}>
-          <Stack.Screen name="(login)" />
+          <Stack.Screen name="(authentication)" />
           <Stack.Screen name="(tabs)" />
         </Stack>
       </ThemeProvider>
