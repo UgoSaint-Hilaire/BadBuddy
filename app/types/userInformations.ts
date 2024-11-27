@@ -1,6 +1,7 @@
+import { Coordinates } from "./locationResponse";
+
 // Interface pour les infos du user
 export interface UserInformations {
-  lat: number;
-  lon: number;
+  coordonates: Coordinates;
   radius?: number;
 }

@@ -1,9 +1,6 @@
 // types/sportsFacilities.types.ts
 
-interface Coordinates {
-  lon: number;
-  lat: number;
-}
+import { Coordinates } from "./coordinates";
 
 interface SportsFacility {
   inst_numero: string;
