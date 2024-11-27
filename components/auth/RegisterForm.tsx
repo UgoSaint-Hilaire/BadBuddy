@@ -62,6 +62,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.logo}>🏸</Text>
       <Text style={styles.title}>Inscription</Text>
       <KeyboardAvoidingView behavior="padding">
         <Input placeholder="Email" autoCapitalize="none" onChangeText={(text) => setEmail(text)} value={email} />
@@ -110,6 +111,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     justifyContent: "center",
+  },
+  logo: {
+    fontSize: 50,
+    textAlign: "center",
   },
   title: {
     fontSize: 24,

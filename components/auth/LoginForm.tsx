@@ -62,7 +62,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      {/* BadBuddy title */}
+      <Text style={styles.logo}>🏸</Text>
       <Text style={styles.title}>Connexion</Text>
       <KeyboardAvoidingView behavior="padding">
         <Input
@@ -111,6 +111,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     justifyContent: "center",
+  },
+  logo: {
+    fontSize: 50,
+    textAlign: "center",
   },
   title: {
     fontSize: 24,

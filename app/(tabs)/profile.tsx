@@ -1,13 +1,11 @@
 import { StyleSheet } from "react-native";
 
-import LoginScreen from "@/components/auth/LoginForm";
 import { Text, View } from "@/components/Themed";
 
-export default function TestScreen() {
+export default function Profile() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Test</Text>
-      <LoginScreen />
+      <Text style={styles.title}>Profil</Text>
     </View>
   );
 }
