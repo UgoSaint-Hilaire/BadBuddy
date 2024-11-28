@@ -1,10 +1,8 @@
 import React from "react";
 import { StyleSheet, ActivityIndicator, Dimensions } from "react-native";
 import { Text, View } from "@/components/Themed";
-import { useGetLocationsQuery } from "../apis/LocationApi";
-import { LocationStatus } from "../../components/LocationStatus";
-import { LocationResults } from "../../components/LocationResults";
-import { useLocation } from "../hooks/useLocation";
+import { useGetLocationsQuery } from "../../apis/LocationApi";
+import { useLocation } from "../../hooks/useLocation";
 import { useUsers } from "@/hooks/useUsers";
 import MapView, { Marker } from "react-native-maps";
 
@@ -57,8 +55,7 @@ export default function HomeScreen() {
               showsScale={true}
               showsCompass={true}
               zoomTapEnabled={false}
-              showsUserLocation
-            >
+              showsUserLocation>
               {data?.results &&
                 data.results.length > 0 &&
                 data.results.map((location, index) => (
