@@ -70,8 +70,7 @@ export default function TabOneScreen() {
               showsScale={true}
               showsCompass={true}
               zoomTapEnabled={false}
-              showsUserLocation
-            >
+              showsUserLocation>
               {users &&
                 users.length > 0 &&
                 users.map((user, index) => {
@@ -88,18 +87,29 @@ export default function TabOneScreen() {
                 })}
               {data?.results &&
                 data.results.length > 0 &&
-                data.results.map((location, index) => (
-                  <Marker
-                    key={`marker-${index}`}
-                    coordinate={{
-                      latitude: location.equip_y,
-                      longitude: location.equip_x,
-                    }}
-                    title={location.inst_nom}
-                    description={location.inst_adresse}
-                    image={require("../../assets/images/icon_badminton.png")}
-                  />
-                ))}
+                (() => {
+                  const seenNames = new Set<string>();
+                  const filteredResults = data.results.filter((location) => {
+                    if (seenNames.has(location.inst_nom)) {
+                      return false;
+                    }
+                    seenNames.add(location.inst_nom);
+                    return true;
+                  });
+
+                  return filteredResults.map((location, index) => (
+                    <Marker
+                      key={`marker-${index}`}
+                      coordinate={{
+                        latitude: location.equip_y,
+                        longitude: location.equip_x,
+                      }}
+                      title={location.inst_nom}
+                      description={location.inst_adresse}
+                      image={require("../../assets/images/icon_badminton.png")}
+                    />
+                  ));
+                })()}
             </MapView>
           </View>
         ) : null;
