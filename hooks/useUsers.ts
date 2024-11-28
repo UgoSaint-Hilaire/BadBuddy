@@ -1,21 +1,7 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs, Timestamp } from "firebase/firestore";
 import { FIREBASE_DB } from "../config/firebase";
-
-export interface User {
-  id: string;
-  age: number;
-  createdAt: Timestamp | string;
-  current_location: number[];
-  email: string;
-  lastly_connected: string;
-  preferences: { [key: string]: string };
-  profile_picture: string;
-  ranking: string;
-  sexe: string;
-  user_id: string;
-  username: string;
-}
+import { User } from "@/app/types/user";
 
 export const useUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
