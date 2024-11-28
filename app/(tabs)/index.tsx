@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   StyleSheet,
   ActivityIndicator,
   Dimensions,
   Animated,
+  FlatList,
+  Image,
 } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { useGetLocationsQuery } from "../apis/LocationApi";
@@ -37,6 +39,7 @@ export default function TabOneScreen() {
   // ---------------------------------------------------------------------------
 
   const [fadeAnim] = useState(new Animated.Value(0));
+  const mapRef = useRef<MapView>(null);
 
   const usersInArea = users?.filter((user) => {
     if (!cardinalPoints) return false;
@@ -68,6 +71,8 @@ export default function TabOneScreen() {
       ]).start();
     }
   }, [usersInArea?.length]);
+
+  console.log(usersInArea);
 
   const renderMap = () => {
     if (isLoading) {
@@ -112,14 +117,16 @@ export default function TabOneScreen() {
                 usersInArea.length > 0 &&
                 usersInArea.map((user, index) => {
                   return (
-                    <Marker
-                      key={`user-${index}`}
-                      coordinate={arrayToCoordinates(user.current_location)}
-                      pinColor="green"
-                      title={user.username}
-                      description={`Classement: ${user.ranking}, Age: ${user.age}`}
-                      image={require("../../assets/images/icon_users_small.png")}
-                    />
+                    <>
+                      <Marker
+                        key={`user-${index}`}
+                        coordinate={arrayToCoordinates(user.current_location)}
+                        pinColor="green"
+                        title={user.username}
+                        description={`Classement: ${user.ranking}, Age: ${user.age}`}
+                        image={require("../../assets/images/icon_users_small.png")}
+                      />
+                    </>
                   );
                 })}
               {data?.results &&
@@ -138,6 +145,29 @@ export default function TabOneScreen() {
                   />
                 ))}
             </MapView>
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.animatedScrollView}
+              data={usersInArea || []}
+              keyExtractor={(user) => user.user_id}
+              renderItem={({ item: user }) => (
+                <View style={styles.userCard}>
+                  <Image
+                    source={{ uri: user.profile_picture }}
+                    style={styles.userImage}
+                  />
+                  <Text style={styles.username}>{user.username}</Text>
+                  <Text style={styles.userInfo}>
+                    {user.ranking} - {user.sexe}
+                  </Text>
+                  <Text style={styles.userInfo}>{user.age} ans</Text>
+                  <Text style={styles.userInfo}>
+                    {Object.values(user.preferences).join(", ")}
+                  </Text>
+                </View>
+              )}
+            />
           </View>
         ) : null;
       default:
@@ -221,5 +251,59 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  animatedScrollView: {
+    position: "absolute",
+    bottom: 20,
+    zIndex: 999,
+  },
+  userCard: {
+    backgroundColor: "white",
+    borderRadius: 10,
+    padding: 15,
+    marginHorizontal: 10,
+    width: 200,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  userImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignSelf: "center",
+    marginBottom: 10,
+  },
+  userImagePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#ddd",
+    alignSelf: "center",
+    marginBottom: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  userInitial: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#666",
+  },
+  username: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 5,
+    backgroundColor: "red",
+  },
+  userInfo: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 3,
   },
 });
