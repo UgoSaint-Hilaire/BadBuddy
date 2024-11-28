@@ -1,5 +1,10 @@
-import React from "react";
-import { StyleSheet, ActivityIndicator, Dimensions } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  StyleSheet,
+  ActivityIndicator,
+  Dimensions,
+  Animated,
+} from "react-native";
 import { Text, View } from "@/components/Themed";
 import { useGetLocationsQuery } from "../apis/LocationApi";
 import { useLocation } from "../hooks/useLocation";
@@ -10,28 +15,59 @@ import { Coordinates } from "../types/coordinates";
 
 type LocationArray = [number, number];
 
+const arrayToCoordinates = (locationArray: unknown): Coordinates => {
+  const [lat, lng] = locationArray as LocationArray;
+  return {
+    latitude: lat,
+    longitude: lng,
+  };
+};
+
 export default function TabOneScreen() {
   const { currentLocation, locationStatus, cardinalPoints } = useLocation();
-
   const { data, isLoading, isSuccess } = useGetLocationsQuery(cardinalPoints!, {
     skip: !cardinalPoints,
   });
-
   const { users, loading, error } = useUsers() as {
     users: User[];
     loading: boolean;
     error: any;
   };
-  console.log("Users data:", users);
-  console.log("First user location:", users?.[0]?.current_location);
 
-  const arrayToCoordinates = (locationArray: unknown): Coordinates => {
-    const [lat, lng] = locationArray as LocationArray;
-    return {
-      latitude: lat,
-      longitude: lng,
-    };
-  };
+  // ---------------------------------------------------------------------------
+
+  const [fadeAnim] = useState(new Animated.Value(0));
+
+  const usersInArea = users?.filter((user) => {
+    if (!cardinalPoints) return false;
+
+    const userCoords = arrayToCoordinates(user.current_location);
+
+    return (
+      userCoords.latitude <= cardinalPoints.north.latitude &&
+      userCoords.latitude >= cardinalPoints.south.latitude &&
+      userCoords.longitude >= cardinalPoints.west.longitude &&
+      userCoords.longitude <= cardinalPoints.east.longitude
+    );
+  });
+
+  useEffect(() => {
+    if (usersInArea) {
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.delay(4000),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [usersInArea?.length]);
 
   const renderMap = () => {
     if (isLoading) {
@@ -70,10 +106,11 @@ export default function TabOneScreen() {
               showsScale={true}
               showsCompass={true}
               zoomTapEnabled={false}
-              showsUserLocation>
-              {users &&
-                users.length > 0 &&
-                users.map((user, index) => {
+              showsUserLocation
+            >
+              {usersInArea &&
+                usersInArea.length > 0 &&
+                usersInArea.map((user, index) => {
                   return (
                     <Marker
                       key={`user-${index}`}
@@ -107,7 +144,8 @@ export default function TabOneScreen() {
                       title={location.inst_nom}
                       description={location.inst_adresse}
                       image={require("../../assets/images/icon_badminton.png")}
-                    />
+                      stopPropagation={true}
+                  />
                   ));
                 })()}
             </MapView>
@@ -125,6 +163,30 @@ export default function TabOneScreen() {
   return (
     <View style={styles.container}>
       {/* <LocationStatus locationStatus={locationStatus} currentLocation={currentLocation} /> */}
+
+      <Animated.View
+        style={[
+          styles.notificationContainer,
+          {
+            opacity: fadeAnim,
+            transform: [
+              {
+                translateY: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-20, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <Text style={styles.notificationText}>
+          🤩
+          {usersInArea?.length || 0} joueur
+          {usersInArea?.length !== 1 ? "s" : ""} trouvé
+          {usersInArea?.length !== 1 ? "s" : ""} dans la zone 🤩
+        </Text>
+      </Animated.View>
 
       {renderMap()}
 
@@ -155,5 +217,20 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
+  },
+  notificationContainer: {
+    position: "absolute",
+    top: 50,
+    zIndex: 999,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    padding: 10,
+    borderRadius: 20,
+    marginHorizontal: 20,
+    alignSelf: "center",
+  },
+  notificationText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
