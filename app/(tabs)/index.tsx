@@ -11,7 +11,7 @@ import { Text, View } from "@/components/Themed";
 import { useGetLocationsQuery } from "../apis/LocationApi";
 import { useLocation } from "../hooks/useLocation";
 import { useUsers } from "@/hooks/useUsers";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import { User } from "../types/user";
 import { Coordinates } from "../types/coordinates";
 
@@ -25,20 +25,40 @@ const arrayToCoordinates = (locationArray: unknown): Coordinates => {
   };
 };
 
+const findNearestLocation = (
+  midPoint: Coordinates,
+  locations: Array<{ equip_y: number; equip_x: number }>
+) => {
+  if (!locations || locations.length === 0) return null;
+
+  return locations.reduce((closest, location) => {
+    const distanceToMidPoint = Math.sqrt(
+      Math.pow(midPoint.latitude - location.equip_y, 2) +
+        Math.pow(midPoint.longitude - location.equip_x, 2)
+    );
+    const distanceToClosest = Math.sqrt(
+      Math.pow(midPoint.latitude - closest.equip_y, 2) +
+        Math.pow(midPoint.longitude - closest.equip_x, 2)
+    );
+
+    return distanceToMidPoint < distanceToClosest ? location : closest;
+  }, locations[0]);
+};
+
 export default function TabOneScreen() {
   const { currentLocation, locationStatus, cardinalPoints } = useLocation();
-  const { data, isLoading, isSuccess } = useGetLocationsQuery(cardinalPoints!, {
+  const { data, isLoading } = useGetLocationsQuery(cardinalPoints!, {
     skip: !cardinalPoints,
   });
-  const { users, loading, error } = useUsers() as {
+  const { users } = useUsers() as {
     users: User[];
     loading: boolean;
     error: any;
   };
 
-  // ---------------------------------------------------------------------------
-
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [selectedUserCoords, setSelectedUserCoords] = useState<Coordinates | null>(null);
+  const [nearestGym, setNearestGym] = useState<any>(null);
   const mapRef = useRef<MapView>(null);
 
   const usersInArea = users?.filter((user) => {
@@ -53,6 +73,21 @@ export default function TabOneScreen() {
       userCoords.longitude <= cardinalPoints.east.longitude
     );
   });
+
+  const handleUserMarkerPress = (user: User) => {
+    if (!currentLocation) return;
+
+    const userCoords = arrayToCoordinates(user.current_location);
+    setSelectedUserCoords(userCoords);
+
+    const midPoint = {
+      latitude: (currentLocation.latitude + userCoords.latitude) / 2,
+      longitude: (currentLocation.longitude + userCoords.longitude) / 2,
+    };
+
+    const nearestGym = data?.results ? findNearestLocation(midPoint, data.results) : null;
+    setNearestGym(nearestGym);
+  };
 
   useEffect(() => {
     if (usersInArea) {
@@ -115,22 +150,20 @@ export default function TabOneScreen() {
             >
               {usersInArea &&
                 usersInArea.length > 0 &&
-                usersInArea.map((user, index) => {
-                  return (
+                usersInArea.map((user, index) => (
                     <>
-                      <Marker
-                        key={`user-${index}`}
-                        coordinate={arrayToCoordinates(user.current_location)}
-                        pinColor="green"
-                        title={user.username}
-                        description={`Classement: ${user.ranking}, Age: ${user.age}`}
-                        image={require("../../assets/images/icon_users_small.png")}
-                      />
+                    <Marker
+                      key={`user-${index}`}
+                      coordinate={arrayToCoordinates(user.current_location)}
+                      pinColor="green"
+                      title={user.username}
+                      description={`Classement: ${user.ranking}, Age: ${user.age}`}
+                    onPress={() => handleUserMarkerPress(user)}
+                      image={require("../../assets/images/icon_users_small.png")}
+                    />
                     </>
-                  );
-                })}
+                ))}
               {data?.results &&
-                data.results.length > 0 &&
                 data.results.map((location, index) => (
                   <Marker
                     key={`marker-${index}`}
@@ -141,9 +174,28 @@ export default function TabOneScreen() {
                     title={location.inst_nom}
                     description={location.inst_adresse}
                     image={require("../../assets/images/icon_badminton.png")}
-                    stopPropagation={true}
                   />
                 ))}
+              {nearestGym && currentLocation && (
+                <Polyline
+                  coordinates={[
+                    { latitude: currentLocation.latitude, longitude: currentLocation.longitude },
+                    { latitude: nearestGym.equip_y, longitude: nearestGym.equip_x },
+                  ]}
+                  strokeColor="blue"
+                  strokeWidth={2}
+                />
+              )}
+              {nearestGym && selectedUserCoords && (
+                <Polyline
+                  coordinates={[
+                    { latitude: selectedUserCoords.latitude, longitude: selectedUserCoords.longitude },
+                    { latitude: nearestGym.equip_y, longitude: nearestGym.equip_x },
+                  ]}
+                  strokeColor="green"
+                  strokeWidth={2}
+                />
+              )}
             </MapView>
             <FlatList
               horizontal
@@ -181,35 +233,7 @@ export default function TabOneScreen() {
 
   return (
     <View style={styles.container}>
-      {/* <LocationStatus locationStatus={locationStatus} currentLocation={currentLocation} /> */}
-
-      <Animated.View
-        style={[
-          styles.notificationContainer,
-          {
-            opacity: fadeAnim,
-            transform: [
-              {
-                translateY: fadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-20, 0],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <Text style={styles.notificationText}>
-          🤩
-          {usersInArea?.length || 0} joueur
-          {usersInArea?.length !== 1 ? "s" : ""} trouvé
-          {usersInArea?.length !== 1 ? "s" : ""} dans la zone 🤩
-        </Text>
-      </Animated.View>
-
       {renderMap()}
-
-      {/* {isSuccess && data && <LocationResults isSuccess={isSuccess} isLoading={isLoading} data={data} />} */}
     </View>
   );
 }
@@ -220,15 +244,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: "80%",
-  },
   mapContainer: {
     height: Dimensions.get("window").height,
     width: Dimensions.get("window").width,
@@ -236,21 +251,6 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
-  },
-  notificationContainer: {
-    position: "absolute",
-    top: 50,
-    zIndex: 999,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    padding: 10,
-    borderRadius: 20,
-    marginHorizontal: 20,
-    alignSelf: "center",
-  },
-  notificationText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
   },
   animatedScrollView: {
     position: "absolute",
