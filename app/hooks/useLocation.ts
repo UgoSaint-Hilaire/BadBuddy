@@ -5,11 +5,29 @@ import { Coordinates } from "../types/locationAPIResponse";
 import { computeDestinationPoint } from "geolib";
 import { CardinalPoints } from "../types/cardinalPoints";
 
+export const computeCardinalsPoints = (
+  start: Coordinates,
+  distance: number
+): CardinalPoints => {
+  return {
+    north: computeDestinationPoint(start, distance, 0),
+    east: computeDestinationPoint(start, distance, 90),
+    south: computeDestinationPoint(start, distance, 180),
+    west: computeDestinationPoint(start, distance, 270),
+  };
+};
+
 export const useLocation = () => {
-  const [currentLocation, setCurrentLocation] = useState<Coordinates | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<Coordinates | null>(
+    null
+  );
   const [locationServicesEnabled, setLocationServicesEnabled] = useState(false);
-  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [cardinalPoints, setCardinalPoints] = useState<CardinalPoints | null>(null);
+  const [locationStatus, setLocationStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [cardinalPoints, setCardinalPoints] = useState<CardinalPoints | null>(
+    null
+  );
 
   const checkIfLocationEnabled = async () => {
     let enabled = await Location.hasServicesEnabledAsync();
@@ -30,10 +48,11 @@ export const useLocation = () => {
 
       if (status !== "granted") {
         setLocationStatus("error");
-        Alert.alert("Pas de permission", "Permettez à l'app de vous localiser", [
-          { text: "Cancel", style: "cancel" },
-          { text: "OK" },
-        ]);
+        Alert.alert(
+          "Pas de permission",
+          "Permettez à l'app de vous localiser",
+          [{ text: "Cancel", style: "cancel" }, { text: "OK" }]
+        );
         return;
       }
 
@@ -47,15 +66,6 @@ export const useLocation = () => {
     } catch {
       setLocationStatus("error");
     }
-  };
-
-  const computeCardinalsPoints = (start: Coordinates, distance: number): CardinalPoints => {
-    return {
-      north: computeDestinationPoint(start, distance, 0),
-      east: computeDestinationPoint(start, distance, 90),
-      south: computeDestinationPoint(start, distance, 180),
-      west: computeDestinationPoint(start, distance, 270),
-    };
   };
 
   useEffect(() => {
