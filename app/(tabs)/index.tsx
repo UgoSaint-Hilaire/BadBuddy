@@ -27,7 +27,7 @@ const arrayToCoordinates = (locationArray: unknown): Coordinates => {
 
 const findNearestLocation = (
   midPoint: Coordinates,
-  locations: Array<{ equip_y: number; equip_x: number }>
+  locations: Array<{ equip_y: number; equip_x: number; inst_nom: string }>
 ) => {
   if (!locations || locations.length === 0) return null;
 
@@ -43,6 +43,22 @@ const findNearestLocation = (
 
     return distanceToMidPoint < distanceToClosest ? location : closest;
   }, locations[0]);
+};
+
+// Fonction pour calculer la distance entre deux points géographiques
+const calculateDistance = (coord1: Coordinates, coord2: Coordinates) => {
+  const R = 6371; // Rayon de la Terre en km
+  const dLat = ((coord2.latitude - coord1.latitude) * Math.PI) / 180;
+  const dLng = ((coord2.longitude - coord1.longitude) * Math.PI) / 180;
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((coord1.latitude * Math.PI) / 180) *
+      Math.cos((coord2.latitude * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance en km
 };
 
 export default function TabOneScreen() {
@@ -61,6 +77,16 @@ export default function TabOneScreen() {
   const [nearestGym, setNearestGym] = useState<any>(null);
   const mapRef = useRef<MapView>(null);
 
+
+  const filteredGyms = data?.results
+    ? data.results.reduce((uniqueGyms, gym) => {
+        if (!uniqueGyms.some((g) => g.inst_nom === gym.inst_nom)) {
+          uniqueGyms.push(gym);
+        }
+        return uniqueGyms;
+      }, [] as typeof data.results)
+    : [];
+
   const usersInArea = users?.filter((user) => {
     if (!cardinalPoints) return false;
 
@@ -74,19 +100,61 @@ export default function TabOneScreen() {
     );
   });
 
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
   const handleUserMarkerPress = (user: User) => {
     if (!currentLocation) return;
-
+  
+    setSelectedUserId(user.id);
     const userCoords = arrayToCoordinates(user.current_location);
     setSelectedUserCoords(userCoords);
-
+  
     const midPoint = {
       latitude: (currentLocation.latitude + userCoords.latitude) / 2,
       longitude: (currentLocation.longitude + userCoords.longitude) / 2,
     };
-
-    const nearestGym = data?.results ? findNearestLocation(midPoint, data.results) : null;
+  
+    const nearestGym = filteredGyms.length
+      ? findNearestLocation(midPoint, filteredGyms)
+      : null;
     setNearestGym(nearestGym);
+
+    if (mapRef.current && nearestGym) {
+      const points = [
+        currentLocation,
+        userCoords,
+        { latitude: nearestGym.equip_y, longitude: nearestGym.equip_x },
+      ];
+    
+      const latitudes = points.map((p) => p.latitude);
+      const longitudes = points.map((p) => p.longitude);
+    
+      const minLatitude = Math.min(...latitudes);
+      const maxLatitude = Math.max(...latitudes);
+      const minLongitude = Math.min(...longitudes);
+      const maxLongitude = Math.max(...longitudes);
+    
+      const paddingPercentage = 0.2;
+      const latitudeDelta = (maxLatitude - minLatitude) * (1 + paddingPercentage);
+      const longitudeDelta = (maxLongitude - minLongitude) * (1 + paddingPercentage);
+    
+      const region = {
+        latitude: (minLatitude + maxLatitude) / 2,
+        longitude: (minLongitude + maxLongitude) / 2,
+        latitudeDelta,
+        longitudeDelta,
+      };
+    
+      mapRef.current.animateToRegion(region, 800
+      );
+      console.log(
+        `Distance entre moi et le gymnase "${nearestGym.inst_nom}": ${calculateDistance(
+          currentLocation,
+          { latitude: nearestGym.equip_y, longitude: nearestGym.equip_x }
+        ).toFixed(2)} km`
+      );
+    }
+    
   };
 
   useEffect(() => {
@@ -136,6 +204,7 @@ export default function TabOneScreen() {
         return currentLocation ? (
           <View style={styles.mapContainer}>
             <MapView
+              ref={mapRef}
               style={styles.map}
               initialRegion={{
                 latitude: currentLocation.latitude,
@@ -159,12 +228,16 @@ export default function TabOneScreen() {
                       title={user.username}
                       description={`Classement: ${user.ranking}, Age: ${user.age}`}
                     onPress={() => handleUserMarkerPress(user)}
-                      image={require("../../assets/images/icon_users_small.png")}
-                    />
-                    </>
+                    image={
+                      selectedUserId === user.id
+                        ? require("../../assets/images/icon_users_large.png")
+                        : require("../../assets/images/icon_users_small.png")
+                    }
+                  />
+                  </>
                 ))}
-              {data?.results &&
-                data.results.map((location, index) => (
+              {filteredGyms &&
+                filteredGyms.map((location, index) => (
                   <Marker
                     key={`marker-${index}`}
                     coordinate={{
@@ -182,8 +255,8 @@ export default function TabOneScreen() {
                     { latitude: currentLocation.latitude, longitude: currentLocation.longitude },
                     { latitude: nearestGym.equip_y, longitude: nearestGym.equip_x },
                   ]}
-                  strokeColor="blue"
-                  strokeWidth={2}
+                  strokeColor="#45b4ea"
+                  strokeWidth={5}
                 />
               )}
               {nearestGym && selectedUserCoords && (
@@ -192,8 +265,8 @@ export default function TabOneScreen() {
                     { latitude: selectedUserCoords.latitude, longitude: selectedUserCoords.longitude },
                     { latitude: nearestGym.equip_y, longitude: nearestGym.equip_x },
                   ]}
-                  strokeColor="green"
-                  strokeWidth={2}
+                  strokeColor="#4676d9"
+                  strokeWidth={5}
                 />
               )}
             </MapView>
