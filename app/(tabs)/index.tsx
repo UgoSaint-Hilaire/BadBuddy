@@ -2,11 +2,13 @@ import React from "react";
 import { StyleSheet, ActivityIndicator, Dimensions } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { useGetLocationsQuery } from "../apis/LocationApi";
-import { LocationStatus } from "../../components/LocationStatus";
-import { LocationResults } from "../../components/LocationResults";
 import { useLocation } from "../hooks/useLocation";
 import { useUsers } from "@/hooks/useUsers";
 import MapView, { Marker } from "react-native-maps";
+import { User } from "../types/user";
+import { Coordinates } from "../types/coordinates";
+
+type LocationArray = [number, number];
 
 export default function TabOneScreen() {
   const { currentLocation, locationStatus, cardinalPoints } = useLocation();
@@ -15,12 +17,23 @@ export default function TabOneScreen() {
     skip: !cardinalPoints,
   });
 
-  const { users, loading, error } = useUsers();
-  // console.log(users);
+  const { users, loading, error } = useUsers() as {
+    users: User[];
+    loading: boolean;
+    error: any;
+  };
+  console.log("Users data:", users);
+  console.log("First user location:", users?.[0]?.current_location);
+
+  const arrayToCoordinates = (locationArray: unknown): Coordinates => {
+    const [lat, lng] = locationArray as LocationArray;
+    return {
+      latitude: lat,
+      longitude: lng,
+    };
+  };
 
   const renderMap = () => {
-    // console.log(locationStatus);
-
     if (isLoading) {
       return (
         <View>
@@ -51,14 +64,28 @@ export default function TabOneScreen() {
               initialRegion={{
                 latitude: currentLocation.latitude,
                 longitude: currentLocation.longitude,
-                latitudeDelta: 0.3,
-                longitudeDelta: 0.2,
+                latitudeDelta: 0.06,
+                longitudeDelta: 0.07,
               }}
               showsScale={true}
               showsCompass={true}
               zoomTapEnabled={false}
               showsUserLocation
             >
+              {users &&
+                users.length > 0 &&
+                users.map((user, index) => {
+                  return (
+                    <Marker
+                      key={`user-${index}`}
+                      coordinate={arrayToCoordinates(user.current_location)}
+                      pinColor="green"
+                      title={user.username}
+                      description={`Classement: ${user.ranking}, Age: ${user.age}`}
+                      image={require("../../assets/images/icon_users_small.png")}
+                    />
+                  );
+                })}
               {data?.results &&
                 data.results.length > 0 &&
                 data.results.map((location, index) => (
