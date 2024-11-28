@@ -9,6 +9,8 @@ import { useColorScheme } from "react-native";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { FIREBASE_AUTH } from "@/config/firebase";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Provider } from "react-redux";
+import { store } from "@/store/store";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -52,7 +54,7 @@ function RootLayoutNav() {
   }, []);
 
   return (
-    <SafeAreaProvider>
+    <Provider store={store}>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack
           screenOptions={{
@@ -62,6 +64,6 @@ function RootLayoutNav() {
           <Stack.Screen name="(tabs)" />
         </Stack>
       </ThemeProvider>
-    </SafeAreaProvider>
+    </Provider>
   );
 }

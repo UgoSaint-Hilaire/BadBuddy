@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs, Timestamp } from "firebase/firestore";
 import { FIREBASE_DB } from "../config/firebase";
-import { User } from "@/app/types/user";
+import { User } from "@/types/user";
 
 export const useUsers = () => {
   const [users, setUsers] = useState<User[]>([]);

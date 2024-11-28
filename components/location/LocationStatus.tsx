@@ -1,6 +1,6 @@
 import React from "react";
 import { Text, View } from "@/components/Themed";
-import { Coordinates } from "../app/types/coordinates";
+import { Coordinates } from "@/types/coordinates";
 
 type LocationStatusProps = {
   locationStatus: "idle" | "loading" | "success" | "error";

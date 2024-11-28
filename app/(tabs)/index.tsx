@@ -8,12 +8,12 @@ import {
   Image,
 } from "react-native";
 import { Text, View } from "@/components/Themed";
-import { useGetLocationsQuery } from "../apis/LocationApi";
-import { useLocation } from "../hooks/useLocation";
+import { useGetLocationsQuery } from "@/apis/LocationApi";
+import { useLocation } from "@/hooks/useLocation";
 import { useUsers } from "@/hooks/useUsers";
 import MapView, { Marker, Polyline } from "react-native-maps";
-import { User } from "../types/user";
-import { Coordinates } from "../types/coordinates";
+import { User } from "../../types/user";
+import { Coordinates } from "../../types/coordinates";
 
 type LocationArray = [number, number];
 
@@ -134,7 +134,7 @@ export default function HomeScreen() {
       const minLongitude = Math.min(...longitudes);
       const maxLongitude = Math.max(...longitudes);
     
-      const paddingPercentage = 0.2;
+      const paddingPercentage = 0.35;
       const latitudeDelta = (maxLatitude - minLatitude) * (1 + paddingPercentage);
       const longitudeDelta = (maxLongitude - minLongitude) * (1 + paddingPercentage);
     
