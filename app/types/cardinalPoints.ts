@@ -1,4 +1,4 @@
-import { Coordinates } from "./locationResponse";
+import { Coordinates } from "./locationAPIResponse";
 
 export interface CardinalPoints {
   north: Coordinates;

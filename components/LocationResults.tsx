@@ -1,32 +1,26 @@
 import { FlatList } from "react-native";
 import { Text, View } from "@/components/Themed";
+import { SportsFacilitiesResponse } from "../app/types/locationAPIResponse";
 
 type LocationResult = {
   inst_nom: string;
   inst_adresse: string;
+  equip_x: number;
+  equip_y: number;
 };
 
 type LocationResultsProps = {
   isSuccess: boolean;
   isLoading: boolean;
-  data: {
-    total_count: number;
-    results: LocationResult[];
-  };
+  data: SportsFacilitiesResponse;
 };
 
-export const LocationResults: React.FC<LocationResultsProps> = ({
-  isSuccess,
-  isLoading,
-  data,
-}) => {
+export const LocationResults: React.FC<LocationResultsProps> = ({ isSuccess, isLoading, data }) => {
   if (!isSuccess) return null;
 
   return (
     <View>
-      <Text style={{ fontWeight: "500", textAlign: "center" }}>
-        Nombre de résultats : {data.total_count}
-      </Text>
+      <Text style={{ fontWeight: "500", textAlign: "center" }}>Nombre de résultats : {data.total_count}</Text>
       <FlatList
         data={data.results}
         keyExtractor={(item, index) => index.toString()}
@@ -35,6 +29,8 @@ export const LocationResults: React.FC<LocationResultsProps> = ({
             {item.inst_nom}
             {"\n"}
             {item.inst_adresse}
+            {"\n"}
+            {item.equip_y} / {item.equip_x}
           </Text>
         )}
         contentContainerStyle={{ paddingVertical: 10 }}
