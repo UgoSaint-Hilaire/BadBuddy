@@ -1,12 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import {
-  StyleSheet,
-  ActivityIndicator,
-  Dimensions,
-  Animated,
-  FlatList,
-  Image,
-} from "react-native";
+import { StyleSheet, ActivityIndicator, Dimensions, Animated, FlatList, Image } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { useGetLocationsQuery } from "../apis/LocationApi";
 import { useLocation } from "../hooks/useLocation";
@@ -14,6 +7,7 @@ import { useUsers } from "@/hooks/useUsers";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { User } from "../types/user";
 import { Coordinates } from "../types/coordinates";
+import { UserCardCarousel } from "@/components/index/UserCardCarrousel";
 
 type LocationArray = [number, number];
 
@@ -25,20 +19,15 @@ const arrayToCoordinates = (locationArray: unknown): Coordinates => {
   };
 };
 
-const findNearestLocation = (
-  midPoint: Coordinates,
-  locations: Array<{ equip_y: number; equip_x: number }>
-) => {
+const findNearestLocation = (midPoint: Coordinates, locations: Array<{ equip_y: number; equip_x: number }>) => {
   if (!locations || locations.length === 0) return null;
 
   return locations.reduce((closest, location) => {
     const distanceToMidPoint = Math.sqrt(
-      Math.pow(midPoint.latitude - location.equip_y, 2) +
-        Math.pow(midPoint.longitude - location.equip_x, 2)
+      Math.pow(midPoint.latitude - location.equip_y, 2) + Math.pow(midPoint.longitude - location.equip_x, 2)
     );
     const distanceToClosest = Math.sqrt(
-      Math.pow(midPoint.latitude - closest.equip_y, 2) +
-        Math.pow(midPoint.longitude - closest.equip_x, 2)
+      Math.pow(midPoint.latitude - closest.equip_y, 2) + Math.pow(midPoint.longitude - closest.equip_x, 2)
     );
 
     return distanceToMidPoint < distanceToClosest ? location : closest;
@@ -57,6 +46,7 @@ export default function TabOneScreen() {
   };
 
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [activeUserIndex, setActiveUserIndex] = useState(0);
   const [selectedUserCoords, setSelectedUserCoords] = useState<Coordinates | null>(null);
   const [nearestGym, setNearestGym] = useState<any>(null);
   const mapRef = useRef<MapView>(null);
@@ -107,6 +97,12 @@ export default function TabOneScreen() {
     }
   }, [usersInArea?.length]);
 
+  useEffect(() => {
+    if (usersInArea && usersInArea[activeUserIndex]) {
+      handleUserMarkerPress(usersInArea[activeUserIndex]);
+    }
+  }, [activeUserIndex]);
+
   console.log(usersInArea);
 
   const renderMap = () => {
@@ -151,17 +147,17 @@ export default function TabOneScreen() {
               {usersInArea &&
                 usersInArea.length > 0 &&
                 usersInArea.map((user, index) => (
-                    <>
+                  <>
                     <Marker
                       key={`user-${index}`}
                       coordinate={arrayToCoordinates(user.current_location)}
                       pinColor="green"
                       title={user.username}
                       description={`Classement: ${user.ranking}, Age: ${user.age}`}
-                    onPress={() => handleUserMarkerPress(user)}
+                      onPress={() => handleUserMarkerPress(user)}
                       image={require("../../assets/images/icon_users_small.png")}
                     />
-                    </>
+                  </>
                 ))}
               {data?.results &&
                 data.results.map((location, index) => (
@@ -197,29 +193,9 @@ export default function TabOneScreen() {
                 />
               )}
             </MapView>
-            <FlatList
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.animatedScrollView}
-              data={usersInArea || []}
-              keyExtractor={(user) => user.user_id}
-              renderItem={({ item: user }) => (
-                <View style={styles.userCard}>
-                  <Image
-                    source={{ uri: user.profile_picture }}
-                    style={styles.userImage}
-                  />
-                  <Text style={styles.username}>{user.username}</Text>
-                  <Text style={styles.userInfo}>
-                    {user.ranking} - {user.sexe}
-                  </Text>
-                  <Text style={styles.userInfo}>{user.age} ans</Text>
-                  <Text style={styles.userInfo}>
-                    {Object.values(user.preferences).join(", ")}
-                  </Text>
-                </View>
-              )}
-            />
+            <View style={styles.userCardCarousel}>
+              <UserCardCarousel data={usersInArea} onActiveIndexChange={setActiveUserIndex} />
+            </View>
           </View>
         ) : null;
       default:
@@ -231,11 +207,7 @@ export default function TabOneScreen() {
     }
   };
 
-  return (
-    <View style={styles.container}>
-      {renderMap()}
-    </View>
-  );
+  return <View style={styles.container}>{renderMap()}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -243,67 +215,24 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
   mapContainer: {
     height: Dimensions.get("window").height,
     width: Dimensions.get("window").width,
     position: "relative",
+    zIndex: 0, // La carte doit avoir un zIndex inférieur
   },
   map: {
     ...StyleSheet.absoluteFillObject,
   },
-  animatedScrollView: {
+  userCardCarousel: {
     position: "absolute",
-    bottom: 20,
-    zIndex: 999,
-  },
-  userCard: {
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 15,
-    marginHorizontal: 10,
-    width: 200,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  userImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignSelf: "center",
-    marginBottom: 10,
-  },
-  userImagePlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#ddd",
-    alignSelf: "center",
-    marginBottom: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  userInitial: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#666",
-  },
-  username: {
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 5,
-    backgroundColor: "red",
-  },
-  userInfo: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 3,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2, // Le carrousel doit avoir un zIndex supérieur
+    backgroundColor: "transparent", // Pour s'assurer que le fond est transparent
+    elevation: 5, // Nécessaire pour Android
   },
 });
