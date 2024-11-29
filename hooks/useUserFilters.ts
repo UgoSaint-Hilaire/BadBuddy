@@ -1,7 +1,7 @@
 import { useState, useCallback, Dispatch, SetStateAction } from "react";
-import { User } from "../app/types/user";
+import { User } from "../types/user";
 import { arrayToCoordinates } from "../utils/coordinatesUtils";
-import { CardinalPoints } from "@/app/types/cardinalPoints";
+import { CardinalPoints } from "@/types/cardinalPoints";
 
 interface UseUserFilters {
   genderFilter: string;

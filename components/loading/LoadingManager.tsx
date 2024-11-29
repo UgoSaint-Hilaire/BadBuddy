@@ -1,7 +1,7 @@
 import React from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { Text } from "@/components/Themed";
-import { LoadingState } from "../../app/types/loadingState";
+import { LoadingState } from "../../types/loadingState";
 
 interface LoadingManagerProps extends LoadingState {
   children: React.ReactNode;

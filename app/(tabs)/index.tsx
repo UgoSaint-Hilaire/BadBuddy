@@ -2,12 +2,12 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { StyleSheet, ActivityIndicator, Dimensions, Animated, FlatList, Image } from "react-native";
 import { Modal, TouchableOpacity, TextInput } from "react-native";
 import { Text, View } from "@/components/Themed";
-import { useGetLocationsQuery } from "../apis/LocationApi";
-import { useLocation } from "../hooks/useLocation";
+import { useGetLocationsQuery } from "../../hooks/apis/LocationApi";
+import { useLocation } from "@/hooks/useLocation";
 import { useUsers } from "@/hooks/useUsers";
 import MapView, { Marker, Polyline } from "react-native-maps";
-import { User } from "../types/user";
-import { Coordinates } from "../types/coordinates";
+import { User } from "../../types/user";
+import { Coordinates } from "../../types/coordinates";
 import { UserCardCarousel } from "@/components/index/UserCardCarrousel";
 import { ButtonGroup } from "react-native-elements";
 
@@ -203,8 +203,7 @@ export default function TabOneScreen() {
               showsScale={true}
               showsCompass={true}
               zoomTapEnabled={false}
-              showsUserLocation
-            >
+              showsUserLocation>
               {usersInArea &&
                 usersInArea.length > 0 &&
                 usersInArea.map((user, index) => (
@@ -287,8 +286,7 @@ export default function TabOneScreen() {
         animationType="slide"
         transparent={true}
         visible={isModalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
+        onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Filtrer les utilisateurs</Text>
 
@@ -325,8 +323,7 @@ export default function TabOneScreen() {
             onPress={() => {
               setGenderFilter("");
               setRankFilter([]);
-            }}
-          >
+            }}>
             <Text style={styles.resetButtonText}>Réinitialiser les filtres</Text>
           </TouchableOpacity>
 

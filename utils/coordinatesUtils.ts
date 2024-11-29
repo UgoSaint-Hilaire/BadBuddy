@@ -1,4 +1,4 @@
-import { Coordinates } from "../app/types/coordinates";
+import { Coordinates } from "../types/coordinates";
 
 type LocationArray = [number, number];
 

@@ -1,5 +1,5 @@
-import { User } from "../types/user";
-import { Coordinates } from "../types/coordinates";
+import { User } from "./user";
+import { Coordinates } from "./coordinates";
 
 export interface Gym {
   inst_nom: string;

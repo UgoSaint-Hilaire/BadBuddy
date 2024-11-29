@@ -1,4 +1,4 @@
-import { Coordinates } from "@/app/types/coordinates";
+import { Coordinates } from "@/types/coordinates";
 
 //
 // Par pitié Tristan utilise Geolib et pas ce truc je pige rien

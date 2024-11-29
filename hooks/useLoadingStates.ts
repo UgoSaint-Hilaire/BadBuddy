@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "./useLocation";
-import { useGetLocationsQuery } from "../app/apis/LocationApi";
+import { useGetLocationsQuery } from "./apis/LocationApi";
 import { useUsers } from "./useUsers";
-import { LoadingState } from "../app/types/loadingState";
+import { LoadingState } from "../types/loadingState";
 
 export const useLoadingStates = (): LoadingState => {
   const [state, setState] = useState<LoadingState>({

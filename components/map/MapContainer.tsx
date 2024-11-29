@@ -1,5 +1,5 @@
-import { Coordinates } from "@/app/types/coordinates";
-import { User } from "@/app/types/user";
+import { Coordinates } from "@/types/coordinates";
+import { User } from "@/types/user";
 import React, { useRef } from "react";
 import { View, StyleSheet, Dimensions } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
@@ -42,8 +42,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         showsScale={true}
         showsCompass={true}
         zoomTapEnabled={false}
-        showsUserLocation
-      >
+        showsUserLocation>
         {usersInArea &&
           usersInArea.length > 0 &&
           usersInArea.map((user, index) => (

@@ -1,4 +1,4 @@
-import { User } from "@/app/types/user";
+import { User } from "@/types/user";
 import React from "react";
 import { View, Image, Text, StyleSheet } from "react-native";
 import Animated, { useAnimatedStyle, interpolate, SharedValue } from "react-native-reanimated";

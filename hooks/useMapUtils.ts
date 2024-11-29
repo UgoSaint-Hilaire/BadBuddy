@@ -1,7 +1,7 @@
 // src/hooks/useMapUtils.ts
 import { useCallback, useState } from "react";
-import { Gym } from "../app/types/mapContainer";
-import { Coordinates } from "../app/types/coordinates";
+import { Gym } from "../types/mapContainer";
+import { Coordinates } from "../types/coordinates";
 import MapView from "react-native-maps";
 
 interface MapUtils {

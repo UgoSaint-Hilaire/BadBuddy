@@ -7,7 +7,7 @@ import Animated, {
   useAnimatedStyle,
   runOnJS,
 } from "react-native-reanimated";
-import { User } from "@/app/types/user";
+import { User } from "@/types/user";
 import UserCard from "./UserCard";
 
 interface UserCardCarouselProps {
@@ -52,15 +52,13 @@ export const UserCardCarousel: React.FC<UserCardCarouselProps> = ({ data, onActi
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: SPACER,
-        }}
-      >
+        }}>
         {data.map((item, index) => (
           <View
             key={item.id}
             style={{
               marginHorizontal: CARD_SPACING,
-            }}
-          >
+            }}>
             <UserCard item={item} size={SIZE} x={x} index={index} />
           </View>
         ))}

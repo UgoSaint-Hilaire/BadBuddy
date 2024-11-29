@@ -1,12 +1,12 @@
 import { useState, useCallback } from "react";
 import { useLocation } from "../hooks/useLocation";
-import { useGetLocationsQuery } from "../app/apis/LocationApi";
+import { useGetLocationsQuery } from "./apis/LocationApi";
 import { useUsers } from "../hooks/useUsers";
 import { useLoadingStates } from "../hooks/useLoadingStates";
 import { useMapUtils } from "../hooks/useMapUtils";
 import { useUserFilters } from "../hooks/useUserFilters";
-import { User } from "../app/types/user";
-import { Coordinates } from "../app/types/coordinates";
+import { User } from "../types/user";
+import { Coordinates } from "../types/coordinates";
 import { arrayToCoordinates } from "../utils/coordinatesUtils";
 
 export const useMapScreen = () => {

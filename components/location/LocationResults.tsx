@@ -1,6 +1,6 @@
 import { FlatList } from "react-native";
 import { Text, View } from "@/components/Themed";
-import { SportsFacilitiesResponse } from "../app/types/locationAPIResponse";
+import { SportsFacilitiesResponse } from "../../types/locationAPIResponse";
 
 type LocationResult = {
   inst_nom: string;
