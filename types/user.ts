@@ -2,13 +2,12 @@ import { Timestamp } from "firebase/firestore";
 import { Coordinates } from "./coordinates";
 
 export interface User {
-  id: string;
   age: number;
-  createdAt: Timestamp | string;
+  createdAt: string;
   current_location: Coordinates;
-  email: string;
+  id: string;
   lastly_connected: string;
-  preferences: { [key: string]: string };
+  preferences: Record<number, string>;
   profile_picture: string;
   ranking: string;
   sexe: string;

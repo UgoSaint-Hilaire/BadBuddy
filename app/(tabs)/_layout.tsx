@@ -7,13 +7,12 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#000",
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: "Accueil",
-          tabBarIcon: ({ color }) => <FontAwesome size={28} name="home" color={color} />,
+          title: "Map",
+          tabBarIcon: ({ color }) => <FontAwesome size={28} name="map" color={color} />,
         }}
       />
       <Tabs.Screen
