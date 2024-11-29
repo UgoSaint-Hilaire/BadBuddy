@@ -9,8 +9,6 @@ import { useColorScheme } from "react-native";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { FIREBASE_AUTH } from "@/config/firebase";
 import { Provider } from "react-redux";
-import { store } from "../store/store";
-import { Provider } from "react-redux";
 import { store } from "@/store/store";
 
 export {
