@@ -1,20 +1,40 @@
 import React from "react";
-import { View, Modal, TouchableOpacity, StyleSheet } from "react-native";
-import { Text } from "@/components/Themed";
+import {
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  SafeAreaView,
+} from "react-native";
+import { Text, View } from "@/components/Themed";
 import { ButtonGroup } from "react-native-elements";
 
-interface FilterModalProps {
+interface FiltersProps {
   isVisible: boolean;
   onClose: () => void;
   genderFilter: string;
-  setGenderFilter: (filter: string) => void;
+  setGenderFilter: (gender: string) => void;
   rankFilter: string[];
-  setRankFilter: React.Dispatch<React.SetStateAction<string[]>>;
+  setRankFilter: (ranks: string[]) => void;
 }
 
-const ranks = ["Tous", "N1", "N2", "N3", "R4", "R5", "R6", "D7", "D8", "D9", "P10", "P11", "P12", "NC"];
+export const ranks = [
+  "Tous",
+  "N1",
+  "N2",
+  "N3",
+  "R4",
+  "R5",
+  "R6",
+  "D7",
+  "D8",
+  "D9",
+  "P10",
+  "P11",
+  "P12",
+  "NC",
+];
 
-const FilterModal: React.FC<FilterModalProps> = ({
+export const FiltersModal: React.FC<FiltersProps> = ({
   isVisible,
   onClose,
   genderFilter,
@@ -23,54 +43,75 @@ const FilterModal: React.FC<FilterModalProps> = ({
   setRankFilter,
 }) => {
   const toggleRank = (selectedRank: string) => {
-    setRankFilter((prev: string[]) =>
-      prev.includes(selectedRank) ? prev.filter((rank: string) => rank !== selectedRank) : [...prev, selectedRank]
+    setRankFilter(
+      rankFilter.includes(selectedRank)
+        ? rankFilter.filter((rank) => rank !== selectedRank)
+        : [...rankFilter, selectedRank]
     );
   };
+
+  const resetFilters = () => {
+    setGenderFilter("");
+    setRankFilter([]);
+  };
+
   return (
-    <Modal animationType="slide" transparent={true} visible={isVisible} onRequestClose={onClose}>
-      <View style={styles.modalContainer}>
-        <Text style={styles.modalTitle}>Filtrer les utilisateurs</Text>
-
-        <Text style={styles.filterLabel}>Sexe:</Text>
-        <ButtonGroup
-          buttons={["Tous", "Homme", "Femme"]}
-          selectedIndex={genderFilter === "" ? 0 : genderFilter === "Homme" ? 1 : 2}
-          onPress={(index) => setGenderFilter(index === 0 ? "" : index === 1 ? "Homme" : "Femme")}
-          containerStyle={styles.buttonGroup}
-          selectedButtonStyle={styles.selectedButton}
-        />
-
-        <Text style={styles.filterLabel}>Classement:</Text>
-        <ButtonGroup
-          buttons={ranks}
-          selectedIndexes={rankFilter.map((rank) => ranks.indexOf(rank))}
-          onPress={(index) => {
-            const selectedRank = ranks[index];
-            if (selectedRank === "Tous") {
-              setRankFilter([]);
-            } else {
-              toggleRank(selectedRank);
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={onClose}
+    >
+      <SafeAreaView>
+        <View style={styles.modalContainer}>
+          <Text style={styles.filterLabel}>Sexe:</Text>
+          <ButtonGroup
+            buttons={["Tous", "Homme", "Femme"]}
+            selectedIndex={
+              genderFilter === ""
+                ? 0
+                : genderFilter === "Homme"
+                ? 1
+                : genderFilter === "Femme"
+                ? 2
+                : null
             }
-          }}
-          containerStyle={styles.buttonGroup}
-          selectedButtonStyle={styles.selectedButton}
-        />
+            onPress={(index) =>
+              setGenderFilter(
+                index === 0 ? "" : index === 1 ? "Homme" : "Femme"
+              )
+            }
+            containerStyle={styles.buttonGroup}
+            selectedButtonStyle={styles.selectedButton}
+          />
 
-        <TouchableOpacity
-          style={styles.resetButton}
-          onPress={() => {
-            setGenderFilter("");
-            setRankFilter([]);
-          }}
-        >
-          <Text style={styles.resetButtonText}>Réinitialiser les filtres</Text>
-        </TouchableOpacity>
+          <Text style={styles.filterLabel}>Classement:</Text>
+          <ButtonGroup
+            buttons={ranks}
+            selectedIndexes={rankFilter.map((rank) => ranks.indexOf(rank))}
+            onPress={(index) => {
+              const selectedRank = ranks[index];
+              if (selectedRank === "Tous") {
+                setRankFilter([]); // Réinitialise à "Tous"
+              } else {
+                toggleRank(selectedRank);
+              }
+            }}
+            containerStyle={styles.buttonGroup}
+            selectedButtonStyle={styles.selectedButton}
+          />
 
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeButtonText}>Fermer</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity style={styles.resetButton} onPress={resetFilters}>
+            <Text style={styles.resetButtonText}>
+              Réinitialiser les filtres
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Text style={styles.closeButtonText}>Fermer</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </Modal>
   );
 };
@@ -123,5 +164,3 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
-
-export default FilterModal;

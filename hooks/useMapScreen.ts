@@ -1,49 +1,82 @@
-import { useState, useCallback } from "react";
-import { useLocation } from "../hooks/useLocation";
-import { useGetLocationsQuery } from "./apis/LocationApi";
-import { useUsers } from "../hooks/useUsers";
-import { useLoadingStates } from "../hooks/useLoadingStates";
-import { useMapUtils } from "../hooks/useMapUtils";
-import { useUserFilters } from "../hooks/useUserFilters";
+// hooks/useMapScreen.ts
+import { useState, useCallback, useEffect } from "react";
+import MapView from "react-native-maps";
+import { Coordinates, SportsFacility } from "../types/locationAPIResponse";
 import { User } from "../types/user";
-import { Coordinates } from "../types/coordinates";
-import { arrayToCoordinates } from "../utils/coordinatesUtils";
+import { arrayToCoordinates } from "@/utils/coordinatesUtils";
 
-export const useMapScreen = () => {
-  const { currentLocation, locationStatus, cardinalPoints } = useLocation();
-  const { data, isLoading } = useGetLocationsQuery(cardinalPoints!, { skip: !cardinalPoints });
-  const { users } = useUsers();
-  const loadingState = useLoadingStates();
-  const { findNearestGym, calculateDistance } = useMapUtils();
+interface UseMapScreenProps {
+  currentLocation: Coordinates | null;
+  filteredGyms: SportsFacility[];
+  usersInArea: User[];
+  mapRef: React.RefObject<MapView>;
+}
 
+interface MapScreenResult {
+  selectedUserId: string | null;
+  selectedUserCoords: Coordinates | null;
+  nearestGym: SportsFacility | null;
+  activeUserIndex: number;
+  setActiveUserIndex: (index: number) => void;
+  handleUserMarkerPress: (user: User) => void;
+}
+
+export const useMapScreen = ({
+  currentLocation,
+  filteredGyms,
+  usersInArea,
+  mapRef,
+}: UseMapScreenProps): MapScreenResult => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [selectedUserCoords, setSelectedUserCoords] = useState<Coordinates | null>(null);
-  const [nearestGym, setNearestGym] = useState<any>(null);
+  const [selectedUserCoords, setSelectedUserCoords] =
+    useState<Coordinates | null>(null);
+  const [nearestGym, setNearestGym] = useState<SportsFacility | null>(null);
   const [activeUserIndex, setActiveUserIndex] = useState(0);
-  const [isModalVisible, setModalVisible] = useState(false);
 
-  // Filtres
-  const { filterUsers, genderFilter, rankFilter, setGenderFilter, setRankFilter } = useUserFilters();
+  const findNearestLocation = useCallback(
+    (midPoint: Coordinates) => {
+      if (!filteredGyms || filteredGyms.length === 0) return null;
 
-  // Gyms filtrés
-  const filteredGyms = data?.results
-    ? data.results.reduce((uniqueGyms, gym) => {
-        if (!uniqueGyms.some((g) => g.inst_nom === gym.inst_nom)) {
-          uniqueGyms.push(gym);
-        }
-        return uniqueGyms;
-      }, [] as typeof data.results)
-    : [];
+      return filteredGyms.reduce((closest, location) => {
+        const distanceToMidPoint = Math.sqrt(
+          Math.pow(midPoint.latitude - location.equip_y, 2) +
+            Math.pow(midPoint.longitude - location.equip_x, 2)
+        );
+        const distanceToClosest = Math.sqrt(
+          Math.pow(midPoint.latitude - closest.equip_y, 2) +
+            Math.pow(midPoint.longitude - closest.equip_x, 2)
+        );
 
-  // Utilisateurs filtrés
-  const usersInArea = filterUsers(users ?? [], cardinalPoints);
+        return distanceToMidPoint < distanceToClosest ? location : closest;
+      }, filteredGyms[0]);
+    },
+    [filteredGyms]
+  );
+
+  const calculateDistance = useCallback(
+    (coord1: Coordinates, coord2: Coordinates) => {
+      const R = 6371;
+      const dLat = ((coord2.latitude - coord1.latitude) * Math.PI) / 180;
+      const dLng = ((coord2.longitude - coord1.longitude) * Math.PI) / 180;
+
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((coord1.latitude * Math.PI) / 180) *
+          Math.cos((coord2.latitude * Math.PI) / 180) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    },
+    []
+  );
 
   const handleUserMarkerPress = useCallback(
     (user: User) => {
       if (!currentLocation) return;
 
-      const userCoords = arrayToCoordinates(user.current_location);
       setSelectedUserId(user.id);
+      const userCoords = arrayToCoordinates(user.current_location);
       setSelectedUserCoords(userCoords);
 
       const midPoint = {
@@ -51,37 +84,59 @@ export const useMapScreen = () => {
         longitude: (currentLocation.longitude + userCoords.longitude) / 2,
       };
 
-      const nearestGym = filteredGyms.length ? findNearestGym(midPoint, filteredGyms) : null;
-      setNearestGym(nearestGym);
+      const nearest = filteredGyms.length
+        ? findNearestLocation(midPoint)
+        : null;
+      setNearestGym(nearest);
 
-      if (nearestGym) {
-        console.log(
-          `Distance entre moi et le gymnase "${nearestGym.inst_nom}": ${calculateDistance(currentLocation, {
-            latitude: nearestGym.equip_y,
-            longitude: nearestGym.equip_x,
-          }).toFixed(2)} km`
+      if (mapRef.current && nearest) {
+        const points = [
+          currentLocation,
+          userCoords,
+          { latitude: nearest.equip_y, longitude: nearest.equip_x },
+        ];
+
+        const latitudes = points.map((p) => p.latitude);
+        const longitudes = points.map((p) => p.longitude);
+
+        const minLatitude = Math.min(...latitudes);
+        const maxLatitude = Math.max(...latitudes);
+        const minLongitude = Math.min(...longitudes);
+        const maxLongitude = Math.max(...longitudes);
+
+        const paddingPercentage = 0.2;
+        const latitudeDelta =
+          (maxLatitude - minLatitude) * (1 + paddingPercentage);
+        const longitudeDelta =
+          (maxLongitude - minLongitude) * (1 + paddingPercentage);
+
+        mapRef.current.animateToRegion(
+          {
+            latitude: (minLatitude + maxLatitude) / 2,
+            longitude: (minLongitude + maxLongitude) / 2,
+            latitudeDelta,
+            longitudeDelta,
+          },
+          800
         );
       }
     },
-    [currentLocation, filteredGyms, findNearestGym, calculateDistance]
+    [currentLocation, filteredGyms, findNearestLocation]
   );
 
+  useEffect(() => {
+    if (usersInArea && usersInArea[activeUserIndex]) {
+      handleUserMarkerPress(usersInArea[activeUserIndex]);
+    }
+  }, [activeUserIndex, usersInArea, handleUserMarkerPress]);
+
+  // Le retour du hook correspond maintenant à l'interface MapScreenResult
   return {
-    currentLocation,
-    loadingState,
-    usersInArea,
-    filteredGyms,
     selectedUserId,
     selectedUserCoords,
     nearestGym,
     activeUserIndex,
-    isModalVisible,
-    genderFilter,
-    rankFilter,
-    handleUserMarkerPress,
     setActiveUserIndex,
-    setModalVisible,
-    setGenderFilter,
-    setRankFilter,
+    handleUserMarkerPress,
   };
 };
