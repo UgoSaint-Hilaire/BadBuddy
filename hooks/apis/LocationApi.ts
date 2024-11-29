@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { SportsFacilitiesResponse } from "../types/locationAPIResponse";
-import { CardinalPoints } from "../types/cardinalPoints";
+import { SportsFacilitiesResponse } from "../../types/locationAPIResponse";
+import { CardinalPoints } from "../../types/cardinalPoints";
 
 export const locationApi = createApi({
   reducerPath: "locationApi",

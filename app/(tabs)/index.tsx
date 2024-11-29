@@ -1,19 +1,15 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import {
-  StyleSheet,
-  ActivityIndicator,
-  Dimensions,
-  Animated,
-  FlatList,
-  Image,
-} from "react-native";
+import { StyleSheet, ActivityIndicator, Dimensions, Animated, FlatList, Image } from "react-native";
+import { Modal, TouchableOpacity, TextInput } from "react-native";
 import { Text, View } from "@/components/Themed";
-import { useGetLocationsQuery } from "@/apis/LocationApi";
+import { useGetLocationsQuery } from "../../hooks/apis/LocationApi";
 import { useLocation } from "@/hooks/useLocation";
 import { useUsers } from "@/hooks/useUsers";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { User } from "../../types/user";
 import { Coordinates } from "../../types/coordinates";
+import { UserCardCarousel } from "@/components/index/UserCardCarrousel";
+import { ButtonGroup } from "react-native-elements";
 
 type LocationArray = [number, number];
 
@@ -25,6 +21,7 @@ const arrayToCoordinates = (locationArray: unknown): Coordinates => {
   };
 };
 
+// ------------------------------------------------------------
 const findNearestLocation = (
   midPoint: Coordinates,
   locations: Array<{ equip_y: number; equip_x: number; inst_nom: string }>
@@ -33,19 +30,16 @@ const findNearestLocation = (
 
   return locations.reduce((closest, location) => {
     const distanceToMidPoint = Math.sqrt(
-      Math.pow(midPoint.latitude - location.equip_y, 2) +
-        Math.pow(midPoint.longitude - location.equip_x, 2)
+      Math.pow(midPoint.latitude - location.equip_y, 2) + Math.pow(midPoint.longitude - location.equip_x, 2)
     );
     const distanceToClosest = Math.sqrt(
-      Math.pow(midPoint.latitude - closest.equip_y, 2) +
-        Math.pow(midPoint.longitude - closest.equip_x, 2)
+      Math.pow(midPoint.latitude - closest.equip_y, 2) + Math.pow(midPoint.longitude - closest.equip_x, 2)
     );
 
     return distanceToMidPoint < distanceToClosest ? location : closest;
   }, locations[0]);
 };
 
-// Fonction pour calculer la distance entre deux points géographiques
 const calculateDistance = (coord1: Coordinates, coord2: Coordinates) => {
   const R = 6371; // Rayon de la Terre en km
   const dLat = ((coord2.latitude - coord1.latitude) * Math.PI) / 180;
@@ -61,8 +55,10 @@ const calculateDistance = (coord1: Coordinates, coord2: Coordinates) => {
   return R * c; // Distance en km
 };
 
-export default function HomeScreen() {
+export default function TabOneScreen() {
   const { currentLocation, locationStatus, cardinalPoints } = useLocation();
+  console.log(locationStatus);
+  const mapRef = useRef<MapView>(null);
   const { data, isLoading } = useGetLocationsQuery(cardinalPoints!, {
     skip: !cardinalPoints,
   });
@@ -73,10 +69,14 @@ export default function HomeScreen() {
   };
 
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [activeUserIndex, setActiveUserIndex] = useState(0);
   const [selectedUserCoords, setSelectedUserCoords] = useState<Coordinates | null>(null);
   const [nearestGym, setNearestGym] = useState<any>(null);
-  const mapRef = useRef<MapView>(null);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [genderFilter, setGenderFilter] = useState<string>("");
+  const [rankFilter, setRankFilter] = useState<string[]>([]);
 
+  const ranks = ["Tous", "N1", "N2", "N3", "R4", "R5", "R6", "D7", "D8", "D9", "P10", "P11", "P12", "NC"];
 
   const filteredGyms = data?.results
     ? data.results.reduce((uniqueGyms, gym) => {
@@ -92,11 +92,20 @@ export default function HomeScreen() {
 
     const userCoords = arrayToCoordinates(user.current_location);
 
+    const toggleRank = (rank: string) => {
+      setRankFilter((prev) => (prev.includes(rank) ? prev.filter((r) => r !== rank) : [...prev, rank]));
+    };
+
+    const matchesGender = genderFilter ? user.sexe === genderFilter : true;
+    const matchesRank = rankFilter.length > 0 ? rankFilter.includes(user.ranking) : true;
+
     return (
       userCoords.latitude <= cardinalPoints.north.latitude &&
       userCoords.latitude >= cardinalPoints.south.latitude &&
       userCoords.longitude >= cardinalPoints.west.longitude &&
-      userCoords.longitude <= cardinalPoints.east.longitude
+      userCoords.longitude <= cardinalPoints.east.longitude &&
+      matchesGender &&
+      matchesRank
     );
   });
 
@@ -104,76 +113,56 @@ export default function HomeScreen() {
 
   const handleUserMarkerPress = (user: User) => {
     if (!currentLocation) return;
-  
-    setSelectedUserId(user.id);
+
+    setSelectedUserId(user.id); // Marquez cet utilisateur comme sélectionné
     const userCoords = arrayToCoordinates(user.current_location);
     setSelectedUserCoords(userCoords);
-  
+
     const midPoint = {
       latitude: (currentLocation.latitude + userCoords.latitude) / 2,
       longitude: (currentLocation.longitude + userCoords.longitude) / 2,
     };
-  
-    const nearestGym = filteredGyms.length
-      ? findNearestLocation(midPoint, filteredGyms)
-      : null;
+
+    const nearestGym = filteredGyms.length ? findNearestLocation(midPoint, filteredGyms) : null;
     setNearestGym(nearestGym);
 
     if (mapRef.current && nearestGym) {
-      const points = [
-        currentLocation,
-        userCoords,
-        { latitude: nearestGym.equip_y, longitude: nearestGym.equip_x },
-      ];
-    
+      const points = [currentLocation, userCoords, { latitude: nearestGym.equip_y, longitude: nearestGym.equip_x }];
+
       const latitudes = points.map((p) => p.latitude);
       const longitudes = points.map((p) => p.longitude);
-    
+
       const minLatitude = Math.min(...latitudes);
       const maxLatitude = Math.max(...latitudes);
       const minLongitude = Math.min(...longitudes);
       const maxLongitude = Math.max(...longitudes);
-    
-      const paddingPercentage = 0.35;
+
+      const paddingPercentage = 0.2;
       const latitudeDelta = (maxLatitude - minLatitude) * (1 + paddingPercentage);
       const longitudeDelta = (maxLongitude - minLongitude) * (1 + paddingPercentage);
-    
+
       const region = {
         latitude: (minLatitude + maxLatitude) / 2,
         longitude: (minLongitude + maxLongitude) / 2,
         latitudeDelta,
         longitudeDelta,
       };
-    
-      mapRef.current.animateToRegion(region, 800
-      );
+
+      mapRef.current.animateToRegion(region, 800);
       console.log(
-        `Distance entre moi et le gymnase "${nearestGym.inst_nom}": ${calculateDistance(
-          currentLocation,
-          { latitude: nearestGym.equip_y, longitude: nearestGym.equip_x }
-        ).toFixed(2)} km`
+        `Distance entre moi et le gymnase "${nearestGym.inst_nom}": ${calculateDistance(currentLocation, {
+          latitude: nearestGym.equip_y,
+          longitude: nearestGym.equip_x,
+        }).toFixed(2)} km`
       );
     }
-    
   };
 
   useEffect(() => {
-    if (usersInArea) {
-      Animated.sequence([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.delay(4000),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]).start();
+    if (usersInArea && usersInArea[activeUserIndex]) {
+      handleUserMarkerPress(usersInArea[activeUserIndex]);
     }
-  }, [usersInArea?.length]);
+  }, [activeUserIndex]);
 
   console.log(usersInArea);
 
@@ -215,18 +204,15 @@ export default function HomeScreen() {
               showsScale={true}
               showsCompass={true}
               zoomTapEnabled={false}
-              showsUserLocation
-            >
+              showsUserLocation>
               {usersInArea &&
                 usersInArea.length > 0 &&
                 usersInArea.map((user, index) => (
-                    <>
-                    <Marker
-                      key={`user-${index}`}
-                      coordinate={arrayToCoordinates(user.current_location)}
-                      pinColor="green"
-                      title={user.username}
-                      description={`Classement: ${user.ranking}, Age: ${user.age}`}
+                  <Marker
+                    key={`user-${index}`}
+                    coordinate={arrayToCoordinates(user.current_location)}
+                    title={user.username}
+                    description={`Classement: ${user.ranking}, Age: ${user.age}`}
                     onPress={() => handleUserMarkerPress(user)}
                     image={
                       selectedUserId === user.id
@@ -234,7 +220,6 @@ export default function HomeScreen() {
                         : require("../../assets/images/icon_users_small.png")
                     }
                   />
-                  </>
                 ))}
               {filteredGyms &&
                 filteredGyms.map((location, index) => (
@@ -270,29 +255,13 @@ export default function HomeScreen() {
                 />
               )}
             </MapView>
-            <FlatList
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.animatedScrollView}
-              data={usersInArea || []}
-              keyExtractor={(user) => user.user_id}
-              renderItem={({ item: user }) => (
-                <View style={styles.userCard}>
-                  <Image
-                    source={{ uri: user.profile_picture }}
-                    style={styles.userImage}
-                  />
-                  <Text style={styles.username}>{user.username}</Text>
-                  <Text style={styles.userInfo}>
-                    {user.ranking} - {user.sexe}
-                  </Text>
-                  <Text style={styles.userInfo}>{user.age} ans</Text>
-                  <Text style={styles.userInfo}>
-                    {Object.values(user.preferences).join(", ")}
-                  </Text>
-                </View>
-              )}
-            />
+            <View style={styles.userCardCarousel}>
+              <UserCardCarousel data={usersInArea} onActiveIndexChange={setActiveUserIndex} />
+            </View>
+            {/* Bouton pour ouvrir le modal */}
+            <TouchableOpacity style={styles.filterButton} onPress={() => setModalVisible(true)}>
+              <Text style={styles.filterButtonText}>Filtrer</Text>
+            </TouchableOpacity>
           </View>
         ) : null;
       default:
@@ -304,9 +273,67 @@ export default function HomeScreen() {
     }
   };
 
+  const toggleRank = (selectedRank: string) => {
+    setRankFilter((prev) =>
+      prev.includes(selectedRank) ? prev.filter((rank) => rank !== selectedRank) : [...prev, selectedRank]
+    );
+  };
+
   return (
     <View style={styles.container}>
       {renderMap()}
+      {/* Modal de filtrage */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isModalVisible}
+        onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Filtrer les utilisateurs</Text>
+
+          {/* Filtre par sexe */}
+          <Text style={styles.filterLabel}>Sexe:</Text>
+          <ButtonGroup
+            buttons={["Tous", "Homme", "Femme"]}
+            selectedIndex={genderFilter === "" ? 0 : genderFilter === "Homme" ? 1 : genderFilter === "Femme" ? 2 : null}
+            onPress={(index) => setGenderFilter(index === 0 ? "" : index === 1 ? "Homme" : "Femme")}
+            containerStyle={styles.buttonGroup}
+            selectedButtonStyle={styles.selectedButton}
+          />
+
+          {/* Filtre par classement */}
+          <Text style={styles.filterLabel}>Classement:</Text>
+          <ButtonGroup
+            buttons={ranks}
+            selectedIndexes={rankFilter.map((rank) => ranks.indexOf(rank))}
+            onPress={(index) => {
+              const selectedRank = ranks[index];
+              if (selectedRank === "Tous") {
+                setRankFilter([]); // Réinitialise à "Tous"
+              } else {
+                toggleRank(selectedRank);
+              }
+            }}
+            containerStyle={styles.buttonGroup}
+            selectedButtonStyle={styles.selectedButton}
+          />
+
+          {/* Bouton Reset */}
+          <TouchableOpacity
+            style={styles.resetButton}
+            onPress={() => {
+              setGenderFilter("");
+              setRankFilter([]);
+            }}>
+            <Text style={styles.resetButtonText}>Réinitialiser les filtres</Text>
+          </TouchableOpacity>
+
+          {/* Bouton Fermer */}
+          <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
+            <Text style={styles.closeButtonText}>Fermer</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -316,67 +343,90 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
   mapContainer: {
     height: Dimensions.get("window").height,
     width: Dimensions.get("window").width,
     position: "relative",
+    zIndex: 0, // La carte doit avoir un zIndex inférieur
   },
   map: {
     ...StyleSheet.absoluteFillObject,
   },
-  animatedScrollView: {
+  userCardCarousel: {
     position: "absolute",
-    bottom: 20,
-    zIndex: 999,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2, // Le carrousel doit avoir un zIndex supérieur
+    backgroundColor: "transparent", // Pour s'assurer que le fond est transparent
+    elevation: 5, // Nécessaire pour Android
   },
-  userCard: {
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 15,
-    marginHorizontal: 10,
-    width: 200,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+  filterButton: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    padding: 10,
+    backgroundColor: "blue",
+    borderRadius: 5,
   },
-  userImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignSelf: "center",
-    marginBottom: 10,
-  },
-  userImagePlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#ddd",
-    alignSelf: "center",
-    marginBottom: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  userInitial: {
-    fontSize: 24,
+  filterButtonText: {
+    color: "white",
     fontWeight: "bold",
-    color: "#666",
   },
-  username: {
+  input: {
+    width: "80%",
+    height: 40,
+    backgroundColor: "white",
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    marginVertical: 5,
+  },
+  buttonGroup: {
+    marginVertical: 10,
+    borderRadius: 5,
+  },
+  selectedButton: {
+    backgroundColor: "#2196F3", // Couleur de fond du bouton sélectionné
+  },
+  filterLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginVertical: 10,
+  },
+  modalTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 5,
-    backgroundColor: "red",
+    marginBottom: 20,
   },
-  userInfo: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 3,
+  modalContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  closeButton: {
+    width: "80%",
+    padding: 15,
+    backgroundColor: "red",
+    marginVertical: 5,
+    alignItems: "center",
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  resetButton: {
+    width: "80%",
+    padding: 15,
+    backgroundColor: "#FFA500", // Orange ou une couleur qui contraste bien
+    marginVertical: 10,
+    alignItems: "center",
+    borderRadius: 5,
+  },
+  resetButtonText: {
+    color: "white",
+    fontWeight: "bold",
   },
 });
