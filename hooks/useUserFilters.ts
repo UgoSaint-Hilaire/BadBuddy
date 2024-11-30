@@ -1,54 +1,53 @@
-import { useState, useCallback, Dispatch, SetStateAction } from "react";
+import { useState, useMemo } from "react";
 import { User } from "../types/user";
-import { arrayToCoordinates } from "../utils/coordinatesUtils";
-import { CardinalPoints } from "@/types/cardinalPoints";
+import { Coordinates } from "../types/coordinates";
 
-interface UseUserFilters {
-  genderFilter: string;
-  rankFilter: string[];
-  filterUsers: (users: User[], cardinalPoints: any) => User[];
-  setGenderFilter: (filter: string) => void;
-  setRankFilter: Dispatch<SetStateAction<string[]>>;
-  toggleRank: (rank: string) => void;
-}
+export const useUserFilters = (users: User[], cardinalPoints: any) => {
+  const [genderFilter, setGenderFilter] = useState<string>(""); // "Homme", "Femme", ou ""
+  const [rankFilter, setRankFilter] = useState<string[]>([]); // Liste des rangs sélectionnés
 
-export const useUserFilters = (): UseUserFilters => {
-  const [genderFilter, setGenderFilter] = useState<string>("");
-  const [rankFilter, setRankFilter] = useState<string[]>([]);
-
-  const toggleRank = useCallback((rank: string) => {
+  // Fonction pour basculer un rang dans la liste des filtres
+  const toggleRank = (rank: string) => {
     setRankFilter((prev) => (prev.includes(rank) ? prev.filter((r) => r !== rank) : [...prev, rank]));
-  }, []);
+  };
 
-  const filterUsers = useCallback(
-    (users: User[], cardinalPoints: CardinalPoints) => {
-      if (!cardinalPoints) return [];
+  // Utilisateurs filtrés
+  const filteredUsers = useMemo(() => {
+    if (!cardinalPoints) return [];
 
-      return users?.filter((user) => {
-        const userCoords = arrayToCoordinates(user.current_location);
+    return users
+      .map((user) => {
+        const userCoords = {
+          latitude: user.current_location[0],
+          longitude: user.current_location[1],
+        } as Coordinates;
 
         const matchesGender = genderFilter ? user.sexe === genderFilter : true;
         const matchesRank = rankFilter.length > 0 ? rankFilter.includes(user.ranking) : true;
 
-        return (
+        const isInArea =
           userCoords.latitude <= cardinalPoints.north.latitude &&
           userCoords.latitude >= cardinalPoints.south.latitude &&
           userCoords.longitude >= cardinalPoints.west.longitude &&
-          userCoords.longitude <= cardinalPoints.east.longitude &&
-          matchesGender &&
-          matchesRank
-        );
-      });
-    },
-    [genderFilter, rankFilter]
-  );
+          userCoords.longitude <= cardinalPoints.east.longitude;
+
+        return isInArea && matchesGender && matchesRank ? { ...user, coords: userCoords } : null;
+      })
+      .filter(Boolean) as User[];
+  }, [users, genderFilter, rankFilter, cardinalPoints]);
+
+  // Fonction pour réinitialiser les filtres
+  const resetFilters = () => {
+    setGenderFilter("");
+    setRankFilter([]);
+  };
 
   return {
+    filteredUsers,
     genderFilter,
-    rankFilter,
-    filterUsers,
     setGenderFilter,
-    setRankFilter,
+    rankFilter,
     toggleRank,
+    resetFilters,
   };
 };

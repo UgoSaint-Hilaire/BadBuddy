@@ -1,4 +1,5 @@
 export interface User {
+  coords: any;
   age: number;
   createdAt: string;
   current_location: [number, number];
