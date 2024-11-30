@@ -1,10 +1,7 @@
-import { Timestamp } from "firebase/firestore";
-import { Coordinates } from "./coordinates";
-
 export interface User {
   age: number;
   createdAt: string;
-  current_location: Coordinates;
+  current_location: [number, number];
   id: string;
   lastly_connected: string;
   preferences: Record<number, string>;

@@ -12,6 +12,8 @@ import { UserCardCarousel } from "@/components/index/UserCardCarrousel";
 import { ButtonGroup } from "react-native-elements";
 import { FIREBASE_AUTH } from "@/config/firebase";
 import { router } from "expo-router";
+import { useLocationCalculations } from "@/hooks/useLocationCalculations";
+import { MapComponent } from "@/components/map/MapComponent";
 
 type LocationArray = [number, number];
 
@@ -23,41 +25,33 @@ const arrayToCoordinates = (locationArray: unknown): Coordinates => {
   };
 };
 
-// ------------------------------------------------------------
-const findNearestLocation = (
-  midPoint: Coordinates,
-  locations: Array<{ equip_y: number; equip_x: number; inst_nom: string }>
-) => {
-  if (!locations || locations.length === 0) return null;
-
-  return locations.reduce((closest, location) => {
-    const distanceToMidPoint = Math.sqrt(
-      Math.pow(midPoint.latitude - location.equip_y, 2) + Math.pow(midPoint.longitude - location.equip_x, 2)
-    );
-    const distanceToClosest = Math.sqrt(
-      Math.pow(midPoint.latitude - closest.equip_y, 2) + Math.pow(midPoint.longitude - closest.equip_x, 2)
-    );
-
-    return distanceToMidPoint < distanceToClosest ? location : closest;
-  }, locations[0]);
-};
-
-const calculateDistance = (coord1: Coordinates, coord2: Coordinates) => {
-  const R = 6371; // Rayon de la Terre en km
-  const dLat = ((coord2.latitude - coord1.latitude) * Math.PI) / 180;
-  const dLng = ((coord2.longitude - coord1.longitude) * Math.PI) / 180;
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((coord1.latitude * Math.PI) / 180) *
-      Math.cos((coord2.latitude * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // Distance en km
-};
-
 export default function TabOneScreen() {
+  const { calculateDistance, findNearestLocation } = useLocationCalculations();
+
+  const handleUserMarkerPress = (user: User) => {
+    if (!currentLocation) return;
+
+    setSelectedUserId(user.id);
+    const userCoords = arrayToCoordinates(user.current_location);
+    setSelectedUserCoords(userCoords);
+
+    const midPoint = {
+      latitude: (currentLocation.latitude + userCoords.latitude) / 2,
+      longitude: (currentLocation.longitude + userCoords.longitude) / 2,
+    };
+
+    const nearestGym = filteredGyms.length ? findNearestLocation(midPoint, filteredGyms) : null;
+
+    setNearestGym(nearestGym);
+
+    if (mapRef.current && nearestGym) {
+      const distance = calculateDistance(currentLocation, {
+        latitude: nearestGym.equip_y,
+        longitude: nearestGym.equip_x,
+      }).toFixed(2);
+      console.log(`Distance entre moi et le gymnase "${nearestGym.inst_nom}": ${distance} km`);
+    }
+  };
   const user = FIREBASE_AUTH.currentUser;
 
   // Rediriger vers l'écran de connexion si non authentifié
@@ -129,53 +123,6 @@ export default function TabOneScreen() {
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  const handleUserMarkerPress = (user: User) => {
-    if (!currentLocation) return;
-
-    setSelectedUserId(user.id); // Marquez cet utilisateur comme sélectionné
-    const userCoords = arrayToCoordinates(user.current_location);
-    setSelectedUserCoords(userCoords);
-
-    const midPoint = {
-      latitude: (currentLocation.latitude + userCoords.latitude) / 2,
-      longitude: (currentLocation.longitude + userCoords.longitude) / 2,
-    };
-
-    const nearestGym = filteredGyms.length ? findNearestLocation(midPoint, filteredGyms) : null;
-    setNearestGym(nearestGym);
-
-    if (mapRef.current && nearestGym) {
-      const points = [currentLocation, userCoords, { latitude: nearestGym.equip_y, longitude: nearestGym.equip_x }];
-
-      const latitudes = points.map((p) => p.latitude);
-      const longitudes = points.map((p) => p.longitude);
-
-      const minLatitude = Math.min(...latitudes);
-      const maxLatitude = Math.max(...latitudes);
-      const minLongitude = Math.min(...longitudes);
-      const maxLongitude = Math.max(...longitudes);
-
-      const paddingPercentage = 0.2;
-      const latitudeDelta = (maxLatitude - minLatitude) * (1 + paddingPercentage);
-      const longitudeDelta = (maxLongitude - minLongitude) * (1 + paddingPercentage);
-
-      const region = {
-        latitude: (minLatitude + maxLatitude) / 2,
-        longitude: (minLongitude + maxLongitude) / 2,
-        latitudeDelta,
-        longitudeDelta,
-      };
-
-      mapRef.current.animateToRegion(region, 800);
-      console.log(
-        `Distance entre moi et le gymnase "${nearestGym.inst_nom}": ${calculateDistance(currentLocation, {
-          latitude: nearestGym.equip_y,
-          longitude: nearestGym.equip_x,
-        }).toFixed(2)} km`
-      );
-    }
-  };
-
   useEffect(() => {
     if (usersInArea && usersInArea[activeUserIndex]) {
       handleUserMarkerPress(usersInArea[activeUserIndex]);
@@ -210,69 +157,16 @@ export default function TabOneScreen() {
       case "success":
         return currentLocation ? (
           <View style={styles.mapContainer}>
-            <MapView
-              ref={mapRef}
-              style={styles.map}
-              initialRegion={{
-                latitude: currentLocation.latitude,
-                longitude: currentLocation.longitude,
-                latitudeDelta: 0.06,
-                longitudeDelta: 0.07,
-              }}
-              showsScale={true}
-              showsCompass={true}
-              zoomTapEnabled={false}
-              showsUserLocation>
-              {usersInArea &&
-                usersInArea.length > 0 &&
-                usersInArea.map((user, index) => (
-                  <Marker
-                    key={`user-${index}`}
-                    coordinate={arrayToCoordinates(user.current_location)}
-                    title={user.username}
-                    description={`Classement: ${user.ranking}, Age: ${user.age}`}
-                    onPress={() => handleUserMarkerPress(user)}
-                    image={
-                      selectedUserId === user.id
-                        ? require("../../assets/images/icon_users_large.png")
-                        : require("../../assets/images/icon_users_small.png")
-                    }
-                  />
-                ))}
-              {filteredGyms &&
-                filteredGyms.map((location, index) => (
-                  <Marker
-                    key={`marker-${index}`}
-                    coordinate={{
-                      latitude: location.equip_y,
-                      longitude: location.equip_x,
-                    }}
-                    title={location.inst_nom}
-                    description={location.inst_adresse}
-                    image={require("../../assets/images/icon_badminton.png")}
-                  />
-                ))}
-              {nearestGym && currentLocation && (
-                <Polyline
-                  coordinates={[
-                    { latitude: currentLocation.latitude, longitude: currentLocation.longitude },
-                    { latitude: nearestGym.equip_y, longitude: nearestGym.equip_x },
-                  ]}
-                  strokeColor="#45b4ea"
-                  strokeWidth={5}
-                />
-              )}
-              {nearestGym && selectedUserCoords && (
-                <Polyline
-                  coordinates={[
-                    { latitude: selectedUserCoords.latitude, longitude: selectedUserCoords.longitude },
-                    { latitude: nearestGym.equip_y, longitude: nearestGym.equip_x },
-                  ]}
-                  strokeColor="#4676d9"
-                  strokeWidth={5}
-                />
-              )}
-            </MapView>
+            <MapComponent
+              currentLocation={currentLocation}
+              usersInArea={usersInArea}
+              filteredGyms={filteredGyms}
+              nearestGym={nearestGym}
+              selectedUserCoords={selectedUserCoords}
+              onUserMarkerPress={handleUserMarkerPress}
+              selectedUserId={selectedUserId}
+              zoomOnUserChange={true}
+            />
             <View style={styles.userCardCarousel}>
               <UserCardCarousel data={usersInArea} onActiveIndexChange={setActiveUserIndex} />
             </View>
@@ -368,9 +262,6 @@ const styles = StyleSheet.create({
     width: Dimensions.get("window").width,
     position: "relative",
     zIndex: 0, // La carte doit avoir un zIndex inférieur
-  },
-  map: {
-    ...StyleSheet.absoluteFillObject,
   },
   userCardCarousel: {
     position: "absolute",
