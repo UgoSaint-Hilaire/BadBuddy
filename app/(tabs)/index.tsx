@@ -10,6 +10,8 @@ import { User } from "../../types/user";
 import { Coordinates } from "../../types/coordinates";
 import { UserCardCarousel } from "@/components/index/UserCardCarrousel";
 import { ButtonGroup } from "react-native-elements";
+import { FIREBASE_AUTH } from "@/config/firebase";
+import { router } from "expo-router";
 
 type LocationArray = [number, number];
 
@@ -56,6 +58,22 @@ const calculateDistance = (coord1: Coordinates, coord2: Coordinates) => {
 };
 
 export default function TabOneScreen() {
+  const user = FIREBASE_AUTH.currentUser;
+
+  // Rediriger vers l'écran de connexion si non authentifié
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Text>Vous devez être connecté</Text>
+        <TouchableOpacity
+          onPress={() => {
+            router.replace(user ? "/(tabs)" : "/(authentication)/login");
+          }}>
+          <Text>Se connecter</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
   const { currentLocation, locationStatus, cardinalPoints } = useLocation();
   console.log(locationStatus);
   const mapRef = useRef<MapView>(null);
